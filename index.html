@@ -236,8 +236,14 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+<<<<<<< HEAD
             const STORAGE_KEY = 'freelanceCalculatorInputs_v5'; 
             
+=======
+            const initialGrossSalary = 0; 
+            const otherBusinessCostsFixedPerHour = 30.00; 
+            const profitMarginPercentageOnSubtotal = 0.15; 
+>>>>>>> 60c5586f0c3102c9cf3bd35cc9f50dcf0f83e676
             const vacationPayPercentage = 0.12; 
             const pensionSavingsPercentage = 0.10; 
             const sickPayPercentage = 0.03;
@@ -248,7 +254,11 @@
             const momsRate = 0.25;
             const transportPerShift = 79;
 
+<<<<<<< HEAD
             let currentBaseSalaryEquivalentRate = 0;
+=======
+            let currentBaseSalaryEquivalentRate = initialGrossSalary;
+>>>>>>> 60c5586f0c3102c9cf3bd35cc9f50dcf0f83e676
             let currentStandardTotalHourlyRate = 0; 
             let currentStandardHourlyVacationPay = 0;
             let currentStandardHourlyPensionSavings = 0;
