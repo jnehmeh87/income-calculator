@@ -10,8 +10,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Chosen Palette: Nordic Calm -->
-    <!-- Application Structure Plan: Dashboard. Module 1: Rate definition based on user-specified formula. Module 2: Income projection (standard hours auto-adjust with OB hours, transportation, detailed financial breakdown, MOMS). OB rates scale all components of standard rate. Standard hours allow decimals. All inputs are saved to and loaded from local storage. Module 3: Considerations. -->
-    <!-- Visualization & Content Choices: Rate Breakdown -> Donut Chart + Input (legend includes %). Income Projections -> Sliders/Inputs + Dynamic Text + Stacked Bar Chart. OB Hours -> Inputs with % premium, auto-deduct from standard. Transportation -> Input for shifts. MOMS -> Calculated display. -->
+    <!-- Application Structure Plan: Dashboard. Module 1: Rate definition. Module 2: Income projection with multi-currency support, including manual tax rate for US. OB rates scale. All inputs saved. Module 3: Considerations. -->
+    <!-- Visualization & Content Choices: Rate Breakdown -> Donut Chart + Input. Income Projections -> Sliders/Inputs + Dynamic Text + Stacked Bar Chart. OB/Transportation/Tax sections. All dynamically update based on selected country config. -->
     <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
     <style>
         body {
@@ -80,14 +80,28 @@
         <main class="grid grid-cols-1 lg:grid-cols-5 gap-8">
 
             <section class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-slate-200">
-                <h2 class="text-2xl font-bold mb-1 text-slate-900">Your Hourly Rate Setup</h2>
-                <p class="text-slate-600 mb-4">Define your desired base gross salary to see how your standard hourly rate is structured.</p>
+                <h2 class="text-2xl font-bold mb-4 text-slate-900">Your Hourly Rate Setup</h2>
                 
-                <div class="mb-4">
-                    <label for="grossSalaryInput" class="block text-sm font-medium text-slate-700">Desired Base "Gross Salary" (SEK/hour):</label>
-                    <input type="number" id="grossSalaryInput" value="121.61" step="0.01" class="input-number-custom mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                 <div class="mb-4">
+                    <label for="countrySelect" class="block text-sm font-medium text-slate-700">Select Country / Currency:</label>
+                    <select id="countrySelect" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <option value="SE">Sweden (SEK)</option>
+                        <option value="GB">United Kingdom (GBP)</option>
+                        <option value="US">United States (USD)</option>
+                    </select>
                 </div>
-                 <p class="text-sm text-slate-600 mb-1">Standard Hourly Rate: <span id="totalHourlyRateDisplay" class="font-bold">275</span> SEK</p>
+                
+                <div id="usSalesTaxContainer" class="mb-4 hidden">
+                    <label for="usSalesTaxInput" class="block text-sm font-medium text-slate-700">Your Local Sales Tax Rate (%):</label>
+                    <input type="number" id="usSalesTaxInput" value="0" step="0.01" class="input-number-custom mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+
+
+                <div class="mb-4">
+                    <label for="grossSalaryInput" class="block text-sm font-medium text-slate-700">Desired Base "Gross Salary" (per hour):</label>
+                    <input type="number" id="grossSalaryInput" value="0" step="0.01" class="input-number-custom mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+                 <p class="text-sm text-slate-600 mb-1">Standard Hourly Rate: <span id="totalHourlyRateDisplay" class="font-bold">0</span></p>
 
 
                 <div class="chart-container">
@@ -101,15 +115,15 @@
                 <p class="text-slate-600 mb-6">Adjust billable hours and shifts per month to see how they affect your income.</p>
 
                 <div class="mb-6">
-                    <label class="block font-medium text-slate-700">Standard Billable Hours per Month: <span id="hoursValueText" class="font-bold text-blue-800">82.0</span></label>
+                    <label class="block font-medium text-slate-700">Total Billable Hours per Month: <span id="totalHoursValueText" class="font-bold text-blue-800">0.0</span></label>
                     <div class="flex items-center space-x-3 mt-2">
-                        <input id="hoursSlider" type="range" min="0" max="200" value="82" step="0.1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
-                        <input type="number" id="hoursNumberInput" min="0" max="200" value="82" step="0.1" class="input-number-custom w-24 px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <input id="totalHoursSlider" type="range" min="0" max="200" value="0" step="0.1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                        <input type="number" id="totalHoursNumberInput" min="0" max="200" value="0" step="0.1" class="input-number-custom w-24 px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                     </div>
                 </div>
 
                 <h3 class="text-lg font-semibold text-slate-800 mb-3">Premium Monthly Hours (OB):</h3>
-                <p class="text-xs text-slate-500 mb-3 -mt-2">Adding OB hours will deduct from Standard Billable Hours. Rate for these hours is Standard Rate x Multiplier.</p>
+                <p class="text-xs text-slate-500 mb-3 -mt-2">These are deducted from your total hours above.</p>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                     <div>
                         <label for="ob50HoursInput" class="block text-sm font-medium text-slate-700">OB +50% (x1.5 Rate):</label>
@@ -121,8 +135,13 @@
                     </div>
                     <div>
                         <label for="ob100HoursInput" class="block text-sm font-medium text-slate-700">OB +100% (x2.0 Rate):</label>
-                        <input type="number" id="ob100HoursInput" value="24" min="0" step="0.1" class="input-number-custom mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                        <input type="number" id="ob100HoursInput" value="0" min="0" step="0.1" class="input-number-custom mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
                     </div>
+                </div>
+
+                <div class="bg-gray-100 p-3 rounded-md text-center mb-6">
+                    <p class="text-sm text-gray-600">Calculated Standard Hours:</p>
+                    <p id="standardHoursDisplay" class="text-xl font-bold text-gray-800">0.0</p>
                 </div>
 
                 <h3 class="text-lg font-semibold text-slate-800 mb-3">Monthly Transportation Compensation:</h3>
@@ -133,28 +152,27 @@
                     </div>
                      <div class="bg-lime-50 p-3 rounded-lg text-center sm:mt-5">
                         <p class="text-sm text-lime-700">Transportation Income</p>
-                        <p id="transportationIncomeDisplay" class="text-xl font-bold text-lime-800">0 SEK</p>
+                        <p id="transportationIncomeDisplay" class="text-xl font-bold text-lime-800">0</p>
                     </div>
                 </div>
 
-
-                <h3 class="text-lg font-semibold text-slate-800 mb-3 mt-8">Overall Projections (Excluding MOMS):</h3>
+                <h3 class="text-lg font-semibold text-slate-800 mb-3 mt-8">Overall Projections (<span class="vat-label">Excluding MOMS</span>):</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-center">
                     <div class="bg-slate-100 p-4 rounded-lg">
                         <p class="text-sm text-slate-600">Total Invoiced (Monthly)</p>
-                        <p id="monthlyInvoiced" class="text-2xl font-bold text-slate-900">0 SEK</p>
+                        <p id="monthlyInvoiced" class="text-2xl font-bold text-slate-900">0</p>
                     </div>
                     <div class="bg-blue-100 p-4 rounded-lg">
                         <p class="text-sm text-blue-700">Total "Gross Salary" (Monthly)</p>
-                        <p id="monthlySalary" class="text-2xl font-bold text-blue-800">0 SEK</p>
+                        <p id="monthlySalary" class="text-2xl font-bold text-blue-800">0</p>
                     </div>
                     <div class="bg-slate-100 p-4 rounded-lg">
                         <p class="text-sm text-slate-600">Total Invoiced (Yearly)</p>
-                        <p id="yearlyInvoiced" class="text-2xl font-bold text-slate-900">0 SEK</p>
+                        <p id="yearlyInvoiced" class="text-2xl font-bold text-slate-900">0</p>
                     </div>
                     <div class="bg-blue-100 p-4 rounded-lg">
                         <p class="text-sm text-blue-700">Total "Gross Salary" (Yearly)</p>
-                        <p id="yearlySalary" class="text-2xl font-bold text-blue-800">0 SEK</p>
+                        <p id="yearlySalary" class="text-2xl font-bold text-blue-800">0</p>
                     </div>
                 </div>
 
@@ -162,58 +180,58 @@
                 <div class="space-y-4 mb-6">
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-sky-50 p-3 rounded-lg">
                         <p class="sm:col-span-1 text-sm font-medium text-sky-700">Vacation Pay:</p>
-                        <p id="monthlyVacationPay" class="text-lg font-bold text-sky-800 text-center sm:text-right">0 SEK</p>
-                        <p id="yearlyVacationPay" class="text-lg font-bold text-sky-800 text-center sm:text-right">0 SEK</p>
+                        <p id="monthlyVacationPay" class="text-lg font-bold text-sky-800 text-center sm:text-right">0</p>
+                        <p id="yearlyVacationPay" class="text-lg font-bold text-sky-800 text-center sm:text-right">0</p>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-cyan-50 p-3 rounded-lg">
                         <p class="sm:col-span-1 text-sm font-medium text-cyan-700">Pension Savings:</p>
-                        <p id="monthlyPensionSavings" class="text-lg font-bold text-cyan-800 text-center sm:text-right">0 SEK</p>
-                        <p id="yearlyPensionSavings" class="text-lg font-bold text-cyan-800 text-center sm:text-right">0 SEK</p>
+                        <p id="monthlyPensionSavings" class="text-lg font-bold text-cyan-800 text-center sm:text-right">0</p>
+                        <p id="yearlyPensionSavings" class="text-lg font-bold text-cyan-800 text-center sm:text-right">0</p>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-fuchsia-50 p-3 rounded-lg">
                         <p class="sm:col-span-1 text-sm font-medium text-fuchsia-700">Sick Pay Buffer:</p>
-                        <p id="monthlySickPay" class="text-lg font-bold text-fuchsia-800 text-center sm:text-right">0 SEK</p>
-                        <p id="yearlySickPay" class="text-lg font-bold text-fuchsia-800 text-center sm:text-right">0 SEK</p>
+                        <p id="monthlySickPay" class="text-lg font-bold text-fuchsia-800 text-center sm:text-right">0</p>
+                        <p id="yearlySickPay" class="text-lg font-bold text-fuchsia-800 text-center sm:text-right">0</p>
                     </div>
                      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-indigo-50 p-3 rounded-lg">
                         <p class="sm:col-span-1 text-sm font-medium text-indigo-700">Business Overheads:</p>
-                        <p id="monthlyOverheads" class="text-lg font-bold text-indigo-800 text-center sm:text-right">0 SEK</p>
-                        <p id="yearlyOverheads" class="text-lg font-bold text-indigo-800 text-center sm:text-right">0 SEK</p>
+                        <p id="monthlyOverheads" class="text-lg font-bold text-indigo-800 text-center sm:text-right">0</p>
+                        <p id="yearlyOverheads" class="text-lg font-bold text-indigo-800 text-center sm:text-right">0</p>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-green-50 p-3 rounded-lg">
                         <p class="sm:col-span-1 text-sm font-medium text-green-700">Business Profit Margin:</p>
-                        <p id="monthlyProfitMargin" class="text-lg font-bold text-green-800 text-center sm:text-right">0 SEK</p>
-                        <p id="yearlyProfitMargin" class="text-lg font-bold text-green-800 text-center sm:text-right">0 SEK</p>
+                        <p id="monthlyProfitMargin" class="text-lg font-bold text-green-800 text-center sm:text-right">0</p>
+                        <p id="yearlyProfitMargin" class="text-lg font-bold text-green-800 text-center sm:text-right">0</p>
                     </div>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-orange-50 p-3 rounded-lg">
-                        <p class="sm:col-span-1 text-sm font-medium text-orange-700">Social Contributions:</p>
-                        <p id="monthlySocialContributions" class="text-lg font-bold text-orange-800 text-center sm:text-right">0 SEK</p>
-                        <p id="yearlySocialContributions" class="text-lg font-bold text-orange-800 text-center sm:text-right">0 SEK</p>
+                        <p id="socialContributionLabel" class="sm:col-span-1 text-sm font-medium text-orange-700">Social Contributions:</p>
+                        <p id="monthlySocialContributions" class="text-lg font-bold text-orange-800 text-center sm:text-right">0</p>
+                        <p id="yearlySocialContributions" class="text-lg font-bold text-orange-800 text-center sm:text-right">0</p>
                     </div>
                 </div>
                 
-                <h3 class="text-lg font-semibold text-slate-800 mb-3 mt-8">MOMS (VAT at 25%):</h3>
+                <h3 id="vatTitle" class="text-lg font-semibold text-slate-800 mb-3 mt-8">MOMS (VAT at 25%):</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-center">
                     <div class="bg-amber-50 p-4 rounded-lg">
-                        <p class="text-sm text-amber-700">MOMS Amount (Monthly)</p>
-                        <p id="monthlyMoms" class="text-2xl font-bold text-amber-800">0 SEK</p>
+                        <p class="vat-label text-sm text-amber-700">MOMS Amount (Monthly)</p>
+                        <p id="monthlyMoms" class="text-2xl font-bold text-amber-800">0</p>
                     </div>
                     <div class="bg-amber-100 p-4 rounded-lg">
-                        <p class="text-sm text-amber-700">Total Invoiced incl. MOMS (Monthly)</p>
-                        <p id="monthlyInvoicedWithMoms" class="text-2xl font-bold text-amber-900">0 SEK</p>
+                        <p class="vat-incl-label text-sm text-amber-700">Total Invoiced incl. MOMS (Monthly)</p>
+                        <p id="monthlyInvoicedWithMoms" class="text-2xl font-bold text-amber-900">0</p>
                     </div>
                      <div class="bg-amber-50 p-4 rounded-lg">
-                        <p class="text-sm text-amber-700">MOMS Amount (Yearly)</p>
-                        <p id="yearlyMoms" class="text-2xl font-bold text-amber-800">0 SEK</p>
+                        <p class="vat-label-yearly text-sm text-amber-700">MOMS Amount (Yearly)</p>
+                        <p id="yearlyMoms" class="text-2xl font-bold text-amber-800">0</p>
                     </div>
                     <div class="bg-amber-100 p-4 rounded-lg">
-                        <p class="text-sm text-amber-700">Total Invoiced incl. MOMS (Yearly)</p>
-                        <p id="yearlyInvoicedWithMoms" class="text-2xl font-bold text-amber-900">0 SEK</p>
+                        <p class="vat-incl-label-yearly text-sm text-amber-700">Total Invoiced incl. MOMS (Yearly)</p>
+                        <p id="yearlyInvoicedWithMoms" class="text-2xl font-bold text-amber-900">0</p>
                     </div>
                 </div>
 
                 <div class="mt-8">
-                     <h3 class="text-lg font-semibold text-center text-slate-800 mb-2">Monthly Financial Composition (Excl. MOMS & Transportation)</h3>
+                     <h3 class="text-lg font-semibold text-center text-slate-800 mb-2">Monthly Financial Composition (<span class="vat-label">Excl. MOMS</span> & Transportation)</h3>
                     <div class="comparison-chart-container">
                         <canvas id="comparisonChart"></canvas>
                     </div>
@@ -236,35 +254,82 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const STORAGE_KEY = 'freelanceCalculatorInputs_v5'; 
+            const STORAGE_KEY = 'freelanceCalculatorInputs_v11_fixed'; 
             
-            const vacationPayPercentage = 0.12; 
-            const pensionSavingsPercentage = 0.10; 
-            const sickPayPercentage = 0.03;
-            const businessOverheadsPercentage = 0.15;
-            const profitMarginPercentage = 0.10;
+            const countryConfigs = {
+                'SE': {
+                    currency: 'SEK',
+                    transportPerShift: 79,
+                    rates: {
+                        vacationPay: 0.12, pension: 0.10, sickPay: 0.03,
+                        overheads: 0.15, profit: 0.10,
+                        socialSecurity: 0.2897, vat: 0.25
+                    },
+                    terms: {
+                        socialContribution: 'Social Contributions (Egenavgifter)',
+                        vatTitle: 'MOMS (VAT at 25%)',
+                        vatLabel: 'MOMS',
+                        vatInclLabel: 'incl. MOMS'
+                    }
+                },
+                'GB': {
+                    currency: 'GBP',
+                    transportPerShift: 10,
+                    rates: {
+                        vacationPay: 0.1207, pension: 0.08, sickPay: 0.03,
+                        overheads: 0.15, profit: 0.10,
+                        socialSecurity: 0.09,
+                        vat: 0.20
+                    },
+                    terms: {
+                        socialContribution: 'National Insurance Contributions',
+                        vatTitle: 'VAT (at 20%)',
+                        vatLabel: 'VAT',
+                        vatInclLabel: 'incl. VAT'
+                    }
+                },
+                'US': {
+                    currency: 'USD',
+                    transportPerShift: 15,
+                    rates: {
+                        vacationPay: 0.08, pension: 0.08, sickPay: 0.03,
+                        overheads: 0.15, profit: 0.10,
+                        socialSecurity: 0.153,
+                        vat: 0.00 
+                    },
+                     terms: {
+                        socialContribution: 'Self-Employment Tax',
+                        vatTitle: 'Sales Tax',
+                        vatLabel: 'Tax',
+                        vatInclLabel: 'incl. Tax'
+                    }
+                }
+            };
+            let currentConfig = countryConfigs['SE'];
 
-            const egenavgifterRate = 0.2897; 
-            const momsRate = 0.25;
-            const transportPerShift = 79;
+            // State variables
+            let state = {
+                country: 'SE',
+                usSalesTax: 0,
+                baseGrossSalary: 0,
+                totalBillableHours: 0,
+                ob50: 0,
+                ob70: 0,
+                ob100: 0,
+                shifts: 0
+            };
 
-            let currentBaseSalaryEquivalentRate = 0;
-            let currentStandardTotalHourlyRate = 0; 
-            let currentStandardHourlyVacationPay = 0;
-            let currentStandardHourlyPensionSavings = 0;
-            let currentStandardHourlySickPay = 0;
-            let currentStandardHourlyOverheads = 0;
-            let currentStandardHourlyEgenavgifter = 0;
-            let currentStandardHourlyProfitMargin = 0;
+            // Hourly component variables
+            let hourlyRate = {
+                baseSalary: 0, vacationPay: 0, pension: 0, sickPay: 0,
+                overheads: 0, socialContributions: 0, profit: 0, total: 0
+            };
             
-            let previousTotalOBHoursGlobal = 0;
-
             const rateDisplayInfo = { 
                 labels: [
                     'Base "Gross Salary"', 'Vacation Pay', 'Pension Savings', 'Sick Pay Buffer', 'Business Overheads',
                     'Social Contributions', 'Profit Margin'
                 ],
-                currentValues: [] 
             };
             
             const chartColors = { 
@@ -278,9 +343,10 @@
             const grossSalaryInputEl = document.getElementById('grossSalaryInput');
             const totalHourlyRateDisplayEl = document.getElementById('totalHourlyRateDisplay');
             const legendContainerEl = document.getElementById('chart-legend');
-            const hoursSliderEl = document.getElementById('hoursSlider');
-            const hoursNumberInputEl = document.getElementById('hoursNumberInput');
-            const hoursValueTextEl = document.getElementById('hoursValueText');
+            const totalHoursSliderEl = document.getElementById('totalHoursSlider');
+            const totalHoursNumberInputEl = document.getElementById('totalHoursNumberInput');
+            const totalHoursValueTextEl = document.getElementById('totalHoursValueText');
+            const standardHoursDisplayEl = document.getElementById('standardHoursDisplay');
             const ob50HoursInputEl = document.getElementById('ob50HoursInput');
             const ob70HoursInputEl = document.getElementById('ob70HoursInput');
             const ob100HoursInputEl = document.getElementById('ob100HoursInput');
@@ -306,6 +372,17 @@
             const yearlyMomsEl = document.getElementById('yearlyMoms');
             const monthlyInvoicedWithMomsEl = document.getElementById('monthlyInvoicedWithMoms');
             const yearlyInvoicedWithMomsEl = document.getElementById('yearlyInvoicedWithMoms');
+            const socialContributionLabelEl = document.getElementById('socialContributionLabel');
+            const vatTitleEl = document.getElementById('vatTitle');
+            const countrySelectEl = document.getElementById('countrySelect');
+            const usSalesTaxContainerEl = document.getElementById('usSalesTaxContainer');
+            const usSalesTaxInputEl = document.getElementById('usSalesTaxInput');
+            
+            const allInputEls = {
+                country: countrySelectEl, usSalesTax: usSalesTaxInputEl, baseGrossSalary: grossSalaryInputEl,
+                totalBillableHours: totalHoursNumberInputEl, ob50: ob50HoursInputEl, ob70: ob70HoursInputEl,
+                ob100: ob100HoursInputEl, shifts: shiftsWorkedInputEl
+            };
 
             const ctxBreakdown = document.getElementById('rateBreakdownChart').getContext('2d');
             const breakdownChart = new Chart(ctxBreakdown, {
@@ -317,7 +394,7 @@
                     callbacks: { label: (ctx) => {
                          const total = ctx.chart.data.datasets[0].data.reduce((a,b)=>a+b,0);
                          const percentage = total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0;
-                         return `${ctx.label}: ${ctx.raw.toFixed(2)} SEK (${percentage}%)`;
+                         return `${ctx.label}: ${formatCurrency(ctx.raw, false)} (${percentage}%)`;
                     }}
                 }}, cutout: '60%'}
             });
@@ -344,249 +421,211 @@
                 }
             });
 
-            function saveInputs() {
-                const inputsToSave = {
-                    grossSalary: grossSalaryInputEl.value, standardHours: hoursNumberInputEl.value,
-                    ob50: ob50HoursInputEl.value, ob70: ob70HoursInputEl.value, ob100: ob100HoursInputEl.value,
-                    shifts: shiftsWorkedInputEl.value
-                };
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(inputsToSave));
+            function saveState() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
             }
 
-            function loadInputs() {
-                const savedInputsJSON = localStorage.getItem(STORAGE_KEY);
-                if (savedInputsJSON) {
-                    const savedInputs = JSON.parse(savedInputsJSON);
-                    grossSalaryInputEl.value = savedInputs.grossSalary || "0";
-                    hoursNumberInputEl.value = savedInputs.standardHours || "0";
-                    ob50HoursInputEl.value = savedInputs.ob50 || "0";
-                    ob70HoursInputEl.value = savedInputs.ob70 || "0";
-                    ob100HoursInputEl.value = savedInputs.ob100 || "0";
-                    shiftsWorkedInputEl.value = savedInputs.shifts || "0";
-                } else {
-                    [grossSalaryInputEl, hoursNumberInputEl, ob50HoursInputEl, ob70HoursInputEl, ob100HoursInputEl, shiftsWorkedInputEl].forEach(el => el.value = "0");
-                }
-                const loadedHours = parseFloat(hoursNumberInputEl.value) || 0;
-                hoursSliderEl.value = loadedHours;
-                hoursValueTextEl.textContent = loadedHours.toFixed(1);
-            }
-
-            function calculateStandardHourlyRateComponents(baseGrossSalary) {
-                currentBaseSalaryEquivalentRate = parseFloat(baseGrossSalary) || 0;
-                // B, C, D, E based on A
-                currentStandardHourlyVacationPay = currentBaseSalaryEquivalentRate * vacationPayPercentage;
-                currentStandardHourlyPensionSavings = currentBaseSalaryEquivalentRate * pensionSavingsPercentage;
-                currentStandardHourlySickPay = currentBaseSalaryEquivalentRate * sickPayPercentage;
-                currentStandardHourlyOverheads = currentBaseSalaryEquivalentRate * businessOverheadsPercentage;
-
-                // F. Subtotal: Cost Base
-                const subtotalCostBase = currentBaseSalaryEquivalentRate + currentStandardHourlyVacationPay + currentStandardHourlyPensionSavings + currentStandardHourlySickPay + currentStandardHourlyOverheads;
-
-                // G. Adjustment for Egenavgifter
-                const adjustedForEgenavgifter = subtotalCostBase / (1 - egenavgifterRate);
-                currentStandardHourlyEgenavgifter = adjustedForEgenavgifter - subtotalCostBase;
-
-                // H. Profit Margin
-                currentStandardHourlyProfitMargin = adjustedForEgenavgifter * profitMarginPercentage;
-
-                // I. Calculated Hourly Rate (Excl. VAT)
-                currentStandardTotalHourlyRate = adjustedForEgenavgifter + currentStandardHourlyProfitMargin;
-
-                rateDisplayInfo.currentValues = [ 
-                    currentBaseSalaryEquivalentRate, currentStandardHourlyVacationPay, currentStandardHourlyPensionSavings,
-                    currentStandardHourlySickPay, currentStandardHourlyOverheads, currentStandardHourlyEgenavgifter,
-                    currentStandardHourlyProfitMargin
-                ];
-                breakdownChart.data.datasets[0].data = rateDisplayInfo.currentValues;
-                totalHourlyRateDisplayEl.textContent = currentStandardTotalHourlyRate.toFixed(0);
-                breakdownChart.update(); 
-                updateLegend();      
-            }
-
-            function getScaledComponentsForPremiumHour(overallRateMultiplier) {
-                 return {
-                    invoicedRate: currentStandardTotalHourlyRate * overallRateMultiplier,
-                    grossSalary: currentBaseSalaryEquivalentRate * overallRateMultiplier,
-                    vacationPay: currentStandardHourlyVacationPay * overallRateMultiplier,
-                    pensionSavings: currentStandardHourlyPensionSavings * overallRateMultiplier,
-                    sickPay: currentStandardHourlySickPay * overallRateMultiplier,
-                    overheads: currentStandardHourlyOverheads * overallRateMultiplier,
-                    egenavgifter: currentStandardHourlyEgenavgifter * overallRateMultiplier,
-                    profitMargin: currentStandardHourlyProfitMargin * overallRateMultiplier
-                };
+            function loadState() {
+                const savedStateJSON = localStorage.getItem(STORAGE_KEY);
+                if (savedStateJSON) {
+                    const savedState = JSON.parse(savedStateJSON);
+                    Object.assign(state, savedState);
+                } 
+                Object.keys(state).forEach(key => {
+                    const el = allInputEls[key];
+                    if (el) {
+                        el.value = state[key];
+                    }
+                });
+                totalHoursSliderEl.value = state.totalBillableHours;
             }
             
-            function handleOBHoursChange() {
-                let currentStandardHoursVal = parseFloat(hoursSliderEl.value);
-                let newOB50 = parseFloat(ob50HoursInputEl.value) || 0;
-                if (newOB50 < 0) { newOB50 = 0; ob50HoursInputEl.value = "0"; }
-                let newOB70 = parseFloat(ob70HoursInputEl.value) || 0;
-                if (newOB70 < 0) { newOB70 = 0; ob70HoursInputEl.value = "0"; }
-                let newOB100 = parseFloat(ob100HoursInputEl.value) || 0;
-                if (newOB100 < 0) { newOB100 = 0; ob100HoursInputEl.value = "0"; }
-
-                const newTotalOB = newOB50 + newOB70 + newOB100;
-                const deltaOBFromPreviousTotal = newTotalOB - previousTotalOBHoursGlobal;
-                let newStandardHours = currentStandardHoursVal - deltaOBFromPreviousTotal;
-
-                const minStdHours = parseFloat(hoursSliderEl.min);
-                const maxStdHours = parseFloat(hoursSliderEl.max);
-                if (newStandardHours < minStdHours) newStandardHours = minStdHours;
-                if (newStandardHours > maxStdHours) newStandardHours = maxStdHours;
-
-                hoursSliderEl.value = newStandardHours.toFixed(1);
-                hoursNumberInputEl.value = newStandardHours.toFixed(1);
-                hoursValueTextEl.textContent = newStandardHours.toFixed(1);
-                previousTotalOBHoursGlobal = newTotalOB; 
+            function updateUI() {
+                // Update config based on state
+                currentConfig = countryConfigs[state.country];
+                updateUIText();
+                
+                // Recalculate everything based on current state
+                calculateStandardHourlyRateComponents();
                 updateProjections();
             }
 
+            function updateUIText() {
+                socialContributionLabelEl.textContent = currentConfig.terms.socialContribution + ':';
+                vatTitleEl.textContent = currentConfig.terms.vatTitle;
+                document.querySelectorAll('.vat-label').forEach(el => el.textContent = `${currentConfig.terms.vatLabel} Amount (Monthly)`);
+                document.querySelectorAll('.vat-incl-label').forEach(el => el.textContent = `Total Invoiced incl. ${currentConfig.terms.vatLabel} (Monthly)`);
+                document.querySelectorAll('.vat-label-yearly').forEach(el => el.textContent = `${currentConfig.terms.vatLabel} Amount (Yearly)`);
+                document.querySelectorAll('.vat-incl-label-yearly').forEach(el => el.textContent = `Total Invoiced incl. ${currentConfig.terms.vatLabel} (Yearly)`);
+                document.querySelectorAll('span.vat-label').forEach(el => el.textContent = `Excluding ${currentConfig.terms.vatLabel}`);
+                
+                usSalesTaxContainerEl.classList.toggle('hidden', state.country !== 'US');
+            }
+
+            function calculateStandardHourlyRateComponents() {
+                hourlyRate.baseSalary = state.baseGrossSalary;
+                hourlyRate.vacationPay = hourlyRate.baseSalary * currentConfig.rates.vacationPay;
+                hourlyRate.pension = hourlyRate.baseSalary * currentConfig.rates.pension;
+                hourlyRate.sickPay = hourlyRate.baseSalary * currentConfig.rates.sickPay;
+                hourlyRate.overheads = hourlyRate.baseSalary * currentConfig.rates.overheads;
+                const subtotal = hourlyRate.baseSalary + hourlyRate.vacationPay + hourlyRate.pension + hourlyRate.sickPay + hourlyRate.overheads;
+                const adjustedForEgen = subtotal / (1 - currentConfig.rates.socialSecurity);
+                hourlyRate.socialContributions = adjustedForEgen - subtotal;
+                hourlyRate.profit = adjustedForEgen * currentConfig.rates.profit;
+                hourlyRate.total = adjustedForEgen + hourlyRate.profit;
+
+                const chartData = [hourlyRate.baseSalary, hourlyRate.vacationPay, hourlyRate.pension, hourlyRate.sickPay, hourlyRate.overheads, hourlyRate.socialContributions, hourlyRate.profit];
+                breakdownChart.data.datasets[0].data = chartData;
+                breakdownChart.update();
+                updateLegend(chartData);
+            }
+            
             function updateProjections() {
-                const standardHours = parseFloat(hoursSliderEl.value); 
-                const ob50Hours = parseFloat(ob50HoursInputEl.value) || 0;
-                const ob70Hours = parseFloat(ob70HoursInputEl.value) || 0;
-                const ob100Hours = parseFloat(ob100HoursInputEl.value) || 0;
-                const shiftsWorked = parseInt(shiftsWorkedInputEl.value) || 0;
-
-                const monthlyTransportationIncome = shiftsWorked * transportPerShift;
-                transportationIncomeDisplayEl.textContent = formatCurrency(monthlyTransportationIncome);
-
+                let ob50Hours = state.ob50, ob70Hours = state.ob70, ob100Hours = state.ob100;
+                let totalOB = ob50Hours + ob70Hours + ob100Hours;
+                if (totalOB > state.totalBillableHours) {
+                    const overage = totalOB - state.totalBillableHours;
+                    const inputs = [{el: ob100HoursInputEl, key: 'ob100'}, {el: ob70HoursInputEl, key: 'ob70'}, {el: ob50HoursInputEl, key: 'ob50'}];
+                    let remainingOverage = overage;
+                    for (const {el, key} of inputs) {
+                        let currentVal = state[key];
+                        if (currentVal > 0) {
+                            const reduction = Math.min(currentVal, remainingOverage);
+                            state[key] = currentVal - reduction;
+                            el.value = state[key].toFixed(1);
+                            remainingOverage -= reduction;
+                            if (remainingOverage <= 0) break;
+                        }
+                    }
+                }
+                ob50Hours = state.ob50; ob70Hours = state.ob70; ob100Hours = state.ob100;
+                const standardHours = Math.max(0, state.totalBillableHours - (ob50Hours + ob70Hours + ob100Hours));
+                
+                const monthlyTransportationIncome = state.shifts * currentConfig.transportPerShift;
+                
                 let totalMonthlyGrossSalary = 0, totalMonthlyVacationPay = 0, totalMonthlyPensionSavings = 0, totalMonthlySickPay = 0;
                 let totalMonthlyOverheads = 0, totalMonthlyEgenavgifter = 0, totalMonthlyProfit = 0;
 
-                totalMonthlyGrossSalary += standardHours * currentBaseSalaryEquivalentRate;
-                totalMonthlyVacationPay += standardHours * currentStandardHourlyVacationPay;
-                totalMonthlyPensionSavings += standardHours * currentStandardHourlyPensionSavings;
-                totalMonthlySickPay += standardHours * currentStandardHourlySickPay;
-                totalMonthlyOverheads += standardHours * currentStandardHourlyOverheads;
-                totalMonthlyEgenavgifter += standardHours * currentStandardHourlyEgenavgifter;
-                totalMonthlyProfit += standardHours * currentStandardHourlyProfitMargin;
+                totalMonthlyGrossSalary += standardHours * hourlyRate.baseSalary;
+                totalMonthlyVacationPay += standardHours * hourlyRate.vacationPay;
+                totalMonthlyPensionSavings += standardHours * hourlyRate.pension;
+                totalMonthlySickPay += standardHours * hourlyRate.sickPay;
+                totalMonthlyOverheads += standardHours * hourlyRate.overheads;
+                totalMonthlyEgenavgifter += standardHours * hourlyRate.socialContributions;
+                totalMonthlyProfit += standardHours * hourlyRate.profit;
                 
-                if (ob50Hours > 0) {
-                    const premComps = getScaledComponentsForPremiumHour(1.5);
-                    totalMonthlyGrossSalary += ob50Hours * premComps.grossSalary; totalMonthlyVacationPay += ob50Hours * premComps.vacationPay;
-                    totalMonthlyPensionSavings += ob50Hours * premComps.pensionSavings; totalMonthlySickPay += ob50Hours * premComps.sickPay;
-                    totalMonthlyOverheads += ob50Hours * premComps.overheads; totalMonthlyEgenavgifter += ob50Hours * premComps.egenavgifter;
-                    totalMonthlyProfit += ob50Hours * premComps.profitMargin;
-                }
-                if (ob70Hours > 0) {
-                     const premComps = getScaledComponentsForPremiumHour(1.7);
-                    totalMonthlyGrossSalary += ob70Hours * premComps.grossSalary; totalMonthlyVacationPay += ob70Hours * premComps.vacationPay;
-                    totalMonthlyPensionSavings += ob70Hours * premComps.pensionSavings; totalMonthlySickPay += ob70Hours * premComps.sickPay;
-                    totalMonthlyOverheads += ob70Hours * premComps.overheads; totalMonthlyEgenavgifter += ob70Hours * premComps.egenavgifter;
-                    totalMonthlyProfit += ob70Hours * premComps.profitMargin;
-                }
-                if (ob100Hours > 0) {
-                    const premComps = getScaledComponentsForPremiumHour(2.0);
-                    totalMonthlyGrossSalary += ob100Hours * premComps.grossSalary; totalMonthlyVacationPay += ob100Hours * premComps.vacationPay;
-                    totalMonthlyPensionSavings += ob100Hours * premComps.pensionSavings; totalMonthlySickPay += ob100Hours * premComps.sickPay;
-                    totalMonthlyOverheads += ob100Hours * premComps.overheads; totalMonthlyEgenavgifter += ob100Hours * premComps.egenavgifter;
-                    totalMonthlyProfit += ob100Hours * premComps.profitMargin;
-                }
-                
+                const multipliers = [{ hours: ob50Hours, m: 1.5 }, { hours: ob70Hours, m: 1.7 }, { hours: ob100Hours, m: 2.0 }];
+                multipliers.forEach(({hours, m}) => {
+                    if (hours > 0) {
+                        totalMonthlyGrossSalary += hours * hourlyRate.baseSalary * m;
+                        totalMonthlyVacationPay += hours * hourlyRate.vacationPay * m;
+                        totalMonthlyPensionSavings += hours * hourlyRate.pension * m;
+                        totalMonthlySickPay += hours * hourlyRate.sickPay * m;
+                        totalMonthlyOverheads += hours * hourlyRate.overheads * m;
+                        totalMonthlyEgenavgifter += hours * hourlyRate.socialContributions * m;
+                        totalMonthlyProfit += hours * hourlyRate.profit * m;
+                    }
+                });
+
                 const totalMonthlyInvoicedExclMoms = totalMonthlyGrossSalary + totalMonthlyVacationPay + totalMonthlyPensionSavings + totalMonthlySickPay + totalMonthlyOverheads + totalMonthlyEgenavgifter + totalMonthlyProfit + monthlyTransportationIncome;
+                
+                let effectiveVatRate = currentConfig.rates.vat;
+                if (currentConfig.currency === 'USD') {
+                    effectiveVatRate = state.usSalesTax / 100;
+                }
+                const monthlyMomsVal = totalMonthlyInvoicedExclMoms * effectiveVatRate;
+                
+                renderDOMValues({
+                    standardHours, monthlyTransportationIncome, totalMonthlyInvoicedExclMoms,
+                    totalMonthlyGrossSalary, totalMonthlyVacationPay, totalMonthlyPensionSavings, totalMonthlySickPay,
+                    totalMonthlyOverheads, totalMonthlyEgenavgifter, totalMonthlyProfit, monthlyMomsVal
+                });
+            }
+            
+            function renderDOMValues(data) {
+                totalHoursValueTextEl.textContent = state.totalBillableHours.toFixed(1);
+                standardHoursDisplayEl.textContent = data.standardHours.toFixed(1);
+                totalHourlyRateDisplayEl.textContent = `${formatCurrency(hourlyRate.total, false)}`;
+                transportationIncomeDisplayEl.textContent = formatCurrency(data.monthlyTransportationIncome);
+                
+                monthlyInvoicedEl.textContent = formatCurrency(data.totalMonthlyInvoicedExclMoms);
+                yearlyInvoicedEl.textContent = formatCurrency(data.totalMonthlyInvoicedExclMoms * 12);
+                monthlySalaryEl.textContent = formatCurrency(data.totalMonthlyGrossSalary);
+                yearlySalaryEl.textContent = formatCurrency(data.totalMonthlyGrossSalary * 12);
+                monthlyVacationPayEl.textContent = formatCurrency(data.totalMonthlyVacationPay);
+                yearlyVacationPayEl.textContent = formatCurrency(data.totalMonthlyVacationPay * 12);
+                monthlyPensionSavingsEl.textContent = formatCurrency(data.totalMonthlyPensionSavings);
+                yearlyPensionSavingsEl.textContent = formatCurrency(data.totalMonthlyPensionSavings * 12);
+                monthlySickPayEl.textContent = formatCurrency(data.totalMonthlySickPay);
+                yearlySickPayEl.textContent = formatCurrency(data.totalMonthlySickPay * 12);
+                monthlyOverheadsEl.textContent = formatCurrency(data.totalMonthlyOverheads);
+                yearlyOverheadsEl.textContent = formatCurrency(data.totalMonthlyOverheads * 12);
+                monthlyProfitMarginEl.textContent = formatCurrency(data.totalMonthlyProfit);
+                yearlyProfitMarginEl.textContent = formatCurrency(data.totalMonthlyProfit * 12);
+                monthlySocialContributionsEl.textContent = formatCurrency(data.totalMonthlyEgenavgifter);
+                yearlySocialContributionsEl.textContent = formatCurrency(data.totalMonthlyEgenavgifter * 12);
 
-                monthlyInvoicedEl.textContent = formatCurrency(totalMonthlyInvoicedExclMoms);
-                yearlyInvoicedEl.textContent = formatCurrency(totalMonthlyInvoicedExclMoms * 12);
-                monthlySalaryEl.textContent = formatCurrency(totalMonthlyGrossSalary);
-                yearlySalaryEl.textContent = formatCurrency(totalMonthlyGrossSalary * 12);
-                monthlyVacationPayEl.textContent = formatCurrency(totalMonthlyVacationPay);
-                yearlyVacationPayEl.textContent = formatCurrency(totalMonthlyVacationPay * 12);
-                monthlyPensionSavingsEl.textContent = formatCurrency(totalMonthlyPensionSavings);
-                yearlyPensionSavingsEl.textContent = formatCurrency(totalMonthlyPensionSavings * 12);
-                monthlySickPayEl.textContent = formatCurrency(totalMonthlySickPay);
-                yearlySickPayEl.textContent = formatCurrency(totalMonthlySickPay * 12);
-                monthlyOverheadsEl.textContent = formatCurrency(totalMonthlyOverheads);
-                yearlyOverheadsEl.textContent = formatCurrency(totalMonthlyOverheads * 12);
-                monthlyProfitMarginEl.textContent = formatCurrency(totalMonthlyProfit);
-                yearlyProfitMarginEl.textContent = formatCurrency(totalMonthlyProfit * 12);
-                monthlySocialContributionsEl.textContent = formatCurrency(totalMonthlyEgenavgifter);
-                yearlySocialContributionsEl.textContent = formatCurrency(totalMonthlyEgenavgifter * 12);
+                monthlyMomsEl.textContent = formatCurrency(data.monthlyMomsVal);
+                yearlyMomsEl.textContent = formatCurrency(data.monthlyMomsVal * 12);
+                monthlyInvoicedWithMomsEl.textContent = formatCurrency(data.totalMonthlyInvoicedExclMoms + data.monthlyMomsVal);
+                yearlyInvoicedWithMomsEl.textContent = formatCurrency((data.totalMonthlyInvoicedExclMoms + data.monthlyMomsVal) * 12);
 
-                const monthlyMomsVal = totalMonthlyInvoicedExclMoms * momsRate;
-                monthlyMomsEl.textContent = formatCurrency(monthlyMomsVal);
-                yearlyMomsEl.textContent = formatCurrency(monthlyMomsVal * 12);
-                monthlyInvoicedWithMomsEl.textContent = formatCurrency(totalMonthlyInvoicedExclMoms + monthlyMomsVal);
-                yearlyInvoicedWithMomsEl.textContent = formatCurrency((totalMonthlyInvoicedExclMoms + monthlyMomsVal) * 12);
-
-                comparisonChart.data.datasets[0].data[0] = totalMonthlyGrossSalary;
-                comparisonChart.data.datasets[1].data[0] = totalMonthlyVacationPay;
-                comparisonChart.data.datasets[2].data[0] = totalMonthlyPensionSavings;
-                comparisonChart.data.datasets[3].data[0] = totalMonthlySickPay;
-                comparisonChart.data.datasets[4].data[0] = totalMonthlyOverheads;
-                comparisonChart.data.datasets[5].data[0] = totalMonthlyEgenavgifter;
-                comparisonChart.data.datasets[6].data[0] = totalMonthlyProfit;
+                comparisonChart.data.datasets[0].data[0] = data.totalMonthlyGrossSalary;
+                comparisonChart.data.datasets[1].data[0] = data.totalMonthlyVacationPay;
+                comparisonChart.data.datasets[2].data[0] = data.totalMonthlyPensionSavings;
+                comparisonChart.data.datasets[3].data[0] = data.totalMonthlySickPay;
+                comparisonChart.data.datasets[4].data[0] = data.totalMonthlyOverheads;
+                comparisonChart.data.datasets[5].data[0] = data.totalMonthlyEgenavgifter;
+                comparisonChart.data.datasets[6].data[0] = data.totalMonthlyProfit;
                 comparisonChart.update();
             }
             
-            function updateLegend() {
+            function updateLegend(chartData) {
                 legendContainerEl.innerHTML = ''; 
-                const totalForPercentage = rateDisplayInfo.currentValues.reduce((a, b) => a + b, 0); 
                 rateDisplayInfo.labels.forEach((label, index) => {
                     const li = document.createElement('li'); li.className = 'flex items-center';
-                    const value = rateDisplayInfo.currentValues[index] || 0; 
-                    const percentage = currentStandardTotalHourlyRate > 0 ? ((value / currentStandardTotalHourlyRate) * 100).toFixed(1) : 0;
+                    const value = chartData[index] || 0; 
+                    const percentage = hourlyRate.total > 0 ? ((value / hourlyRate.total) * 100).toFixed(1) : 0;
                     li.innerHTML = `<span class="w-3 h-3 rounded-full mr-2" style="background-color: ${donutBackgroundColors[index]}"></span>
                                     <span class="flex-grow">${label}</span>
-                                    <span class="ml-auto font-medium text-right">${value.toFixed(2)} SEK (${percentage}%)</span>`;
+                                    <span class="ml-auto font-medium text-right">${value.toFixed(2)} (${percentage}%)</span>`;
                     legendContainerEl.appendChild(li);
                 });
             }
-            const formatCurrency = (value) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'SEK', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(value);
-            
-            function addEventListenersAndRun() {
-                const allInputs = [grossSalaryInputEl, hoursSliderEl, hoursNumberInputEl, ob50HoursInputEl, ob70HoursInputEl, ob100HoursInputEl, shiftsWorkedInputEl];
-                allInputs.forEach(input => {
-                    input.addEventListener('input', () => {
-                        saveInputs();
-                         if (input.id === 'grossSalaryInput') {
-                            calculateStandardHourlyRateComponents(grossSalaryInputEl.value);
-                            updateProjections();
-                        } else if (['ob50HoursInput', 'ob70HoursInput', 'ob100HoursInput'].includes(input.id)) {
-                             handleOBHoursChange();
-                        } else if (input.id === 'hoursSlider') {
-                            const val = parseFloat(input.value).toFixed(1);
-                            hoursValueTextEl.textContent = val;
-                            hoursNumberInputEl.value = val;
-                            updateProjections();
+            const formatCurrency = (value, includeCurrencyCode = true) => {
+                return new Intl.NumberFormat(undefined, {
+                    style: 'currency', currency: currentConfig.currency, 
+                    minimumFractionDigits: 0, maximumFractionDigits: 0
+                }).format(value);
+            };
+
+            function initialize() {
+                loadState();
+                
+                Object.keys(allInputEls).forEach(key => {
+                    const el = allInputEls[key];
+                    el.addEventListener('input', () => {
+                        if (el.type === 'select-one') {
+                            state[key] = el.value;
                         } else {
-                            updateProjections();
+                            const parsedValue = parseFloat(el.value);
+                            state[key] = isNaN(parsedValue) ? 0 : parsedValue;
                         }
+                        
+                        // Sync slider and number input for total hours
+                        if (el.id === 'totalHoursSlider' || el.id === 'totalHoursNumberInput') {
+                            totalHoursSliderEl.value = state.totalBillableHours;
+                            totalHoursNumberInputEl.value = state.totalBillableHours;
+                        }
+                        
+                        updateUI();
+                        saveState();
                     });
-
-                    if(input.type === 'number') {
-                        input.addEventListener('change', (e) => {
-                             let val = parseFloat(e.target.value);
-                             const min = parseFloat(e.target.min);
-                             const max = parseFloat(e.target.max);
-                             if (isNaN(val) || val < min) val = min;
-                             if (!isNaN(max) && val > max) val = max;
-                             
-                             e.target.value = e.target.id.includes('Hours') ? val.toFixed(1) : val;
-
-                             if (e.target.id === 'hoursNumberInput') {
-                                 hoursSliderEl.value = val.toFixed(1);
-                                 hoursValueTextEl.textContent = val.toFixed(1);
-                                 updateProjections();
-                             } else if (['ob50HoursInput', 'ob70HoursInput', 'ob100HoursInput'].includes(e.target.id)) {
-                                 handleOBHoursChange();
-                             } else {
-                                 updateProjections();
-                             }
-                             saveInputs();
-                        });
-                    }
                 });
+                updateUI();
             }
-            
-            // Initial Setup
-            loadInputs();
-            previousTotalOBHoursGlobal = (parseFloat(ob50HoursInputEl.value) || 0) +
-                                         (parseFloat(ob70HoursInputEl.value) || 0) +
-                                         (parseFloat(ob100HoursInputEl.value) || 0);
-            calculateStandardHourlyRateComponents(grossSalaryInputEl.value); 
-            addEventListenersAndRun();
-            updateProjections();
+
+            initialize();
         });
     </script>
 </body>
