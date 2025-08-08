@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<script>
+    // Pass Django context to JavaScript
+    const userSettings = JSON.parse('{{ user_settings_json|safe }}');
+</script>
+<div class="container mx-auto p-4 sm:p-6 lg:p-8">
+    <header class="text-center mb-10">
+        <h1 class="text-3xl sm:text-4xl font-bold text-slate-900">Freelance Rate & Income Calculator</h1>
+        <p class="mt-2 text-lg text-slate-600">An interactive tool to understand and project your freelance income. Your entries are saved automatically.</p>
+    </header>
+
+    <main class="grid grid-cols-1 lg:grid-cols-5 gap-8">
+
+        <section class="lg:col-span-2 bg-white p-6 rounded-xl shadow-md border border-slate-200">
+            <h2 class="text-2xl font-bold mb-4 text-slate-900">Your Hourly Rate Setup</h2>
+            
+             <div class="mb-4">
+                <label for="countrySelect" class="block text-sm font-medium text-slate-700">Select Country / Currency:</label>
+                <select id="countrySelect" class="mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                    <option value="SE">Sweden (SEK)</option>
+                    <option value="GB">United Kingdom (GBP)</option>
+                    <option value="US">United States (USD)</option>
+                </select>
+            </div>
+            
+            <div id="usSalesTaxContainer" class="mb-4 hidden">
+                <label for="usSalesTaxInput" class="block text-sm font-medium text-slate-700">Your Local Sales Tax Rate (%):</label>
+                <input type="number" id="usSalesTaxInput" value="0" step="0.01" class="input-number-custom mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            </div>
+
+
+            <div class="mb-4">
+                <label for="grossSalaryInput" class="block text-sm font-medium text-slate-700">Desired Base "Gross Salary" (per hour):</label>
+                <input type="number" id="grossSalaryInput" value="0" step="0.01" class="input-number-custom mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+            </div>
+             <p class="text-sm text-slate-600 mb-1">Standard Hourly Rate: <span id="totalHourlyRateDisplay" class="font-bold">0</span></p>
+
+
+            <div class="chart-container">
+                <canvas id="rateBreakdownChart"></canvas>
+            </div>
+            <ul id="chart-legend" class="mt-4 space-y-1 text-xs"></ul>
+        </section>
+
+        <section class="lg:col-span-3 bg-white p-6 rounded-xl shadow-md border border-slate-200">
+            <h2 class="text-2xl font-bold mb-1 text-slate-900">Income Projector</h2>
+            <p class="text-slate-600 mb-6">Adjust billable hours and shifts per month to see how they affect your income.</p>
+
+            <div class="mb-6">
+                <label class="block font-medium text-slate-700">Total Billable Hours per Month: <span id="totalHoursValueText" class="font-bold text-blue-800">0.0</span></label>
+                <div class="flex items-center space-x-3 mt-2">
+                    <input id="totalHoursSlider" type="range" min="0" max="200" value="0" step="0.1" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer">
+                    <input type="number" id="totalHoursNumberInput" min="0" max="200" value="0" step="0.1" class="input-number-custom w-24 px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <h3 class="text-lg font-semibold text-slate-800 mb-3">Premium Monthly Hours (OB):</h3>
+            <p class="text-xs text-slate-500 mb-3 -mt-2">These are deducted from your total hours above.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <div>
+                    <label for="ob50HoursInput" class="block text-sm font-medium text-slate-700">OB +50% (x1.5 Rate):</label>
+                    <input type="number" id="ob50HoursInput" value="0" min="0" step="0.1" class="input-number-custom mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="ob70HoursInput" class="block text-sm font-medium text-slate-700">OB +70% (x1.7 Rate):</label>
+                    <input type="number" id="ob70HoursInput" value="0" min="0" step="0.1" class="input-number-custom mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+                <div>
+                    <label for="ob100HoursInput" class="block text-sm font-medium text-slate-700">OB +100% (x2.0 Rate):</label>
+                    <input type="number" id="ob100HoursInput" value="0" min="0" step="0.1" class="input-number-custom mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+            </div>
+
+            <div class="bg-gray-100 p-3 rounded-md text-center mb-6">
+                <p class="text-sm text-gray-600">Calculated Standard Hours:</p>
+                <p id="standardHoursDisplay" class="text-xl font-bold text-gray-800">0.0</p>
+            </div>
+
+            <h3 class="text-lg font-semibold text-slate-800 mb-3">Monthly Transportation Compensation:</h3>
+             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label for="shiftsWorkedInput" class="block text-sm font-medium text-slate-700">Number of Shifts Worked:</label>
+                    <input type="number" id="shiftsWorkedInput" value="0" min="0" step="1" class="input-number-custom mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+                </div>
+                 <div class="bg-lime-50 p-3 rounded-lg text-center sm:mt-5">
+                    <p class="text-sm text-lime-700">Transportation Income</p>
+                    <p id="transportationIncomeDisplay" class="text-xl font-bold text-lime-800">0</p>
+                </div>
+            </div>
+
+            <h3 class="text-lg font-semibold text-slate-800 mb-3 mt-8">Overall Projections (<span class="vat-label">Excluding MOMS</span>):</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-center">
+                <div class="bg-slate-100 p-4 rounded-lg">
+                    <p class="text-sm text-slate-600">Total Invoiced (Monthly)</p>
+                    <p id="monthlyInvoiced" class="text-2xl font-bold text-slate-900">0</p>
+                </div>
+                <div class="bg-blue-100 p-4 rounded-lg">
+                    <p class="text-sm text-blue-700">Total "Gross Salary" (Monthly)</p>
+                    <p id="monthlySalary" class="text-2xl font-bold text-blue-800">0</p>
+                </div>
+                <div class="bg-slate-100 p-4 rounded-lg">
+                    <p class="text-sm text-slate-600">Total Invoiced (Yearly)</p>
+                    <p id="yearlyInvoiced" class="text-2xl font-bold text-slate-900">0</p>
+                </div>
+                <div class="bg-blue-100 p-4 rounded-lg">
+                    <p class="text-sm text-blue-700">Total "Gross Salary" (Yearly)</p>
+                    <p id="yearlySalary" class="text-2xl font-bold text-blue-800">0</p>
+                </div>
+            </div>
+
+            <h3 class="text-lg font-semibold text-slate-800 mb-3 mt-8">Detailed Financial Breakdown (Monthly/Yearly):</h3>
+            <div class="space-y-4 mb-6">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-sky-50 p-3 rounded-lg">
+                    <p class="sm:col-span-1 text-sm font-medium text-sky-700">Vacation Pay:</p>
+                    <p id="monthlyVacationPay" class="text-lg font-bold text-sky-800 text-center sm:text-right">0</p>
+                    <p id="yearlyVacationPay" class="text-lg font-bold text-sky-800 text-center sm:text-right">0</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-cyan-50 p-3 rounded-lg">
+                    <p class="sm:col-span-1 text-sm font-medium text-cyan-700">Pension Savings:</p>
+                    <p id="monthlyPensionSavings" class="text-lg font-bold text-cyan-800 text-center sm:text-right">0</p>
+                    <p id="yearlyPensionSavings" class="text-lg font-bold text-cyan-800 text-center sm:text-right">0</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-fuchsia-50 p-3 rounded-lg">
+                    <p class="sm:col-span-1 text-sm font-medium text-fuchsia-700">Sick Pay Buffer:</p>
+                    <p id="monthlySickPay" class="text-lg font-bold text-fuchsia-800 text-center sm:text-right">0</p>
+                    <p id="yearlySickPay" class="text-lg font-bold text-fuchsia-800 text-center sm:text-right">0</p>
+                </div>
+                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-indigo-50 p-3 rounded-lg">
+                    <p class="sm:col-span-1 text-sm font-medium text-indigo-700">Business Overheads:</p>
+                    <p id="monthlyOverheads" class="text-lg font-bold text-indigo-800 text-center sm:text-right">0</p>
+                    <p id="yearlyOverheads" class="text-lg font-bold text-indigo-800 text-center sm:text-right">0</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-green-50 p-3 rounded-lg">
+                    <p class="sm:col-span-1 text-sm font-medium text-green-700">Business Profit Margin:</p>
+                    <p id="monthlyProfitMargin" class="text-lg font-bold text-green-800 text-center sm:text-right">0</p>
+                    <p id="yearlyProfitMargin" class="text-lg font-bold text-green-800 text-center sm:text-right">0</p>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center bg-orange-50 p-3 rounded-lg">
+                    <p id="socialContributionLabel" class="sm:col-span-1 text-sm font-medium text-orange-700">Social Contributions:</p>
+                    <p id="monthlySocialContributions" class="text-lg font-bold text-orange-800 text-center sm:text-right">0</p>
+                    <p id="yearlySocialContributions" class="text-lg font-bold text-orange-800 text-center sm:text-right">0</p>
+                </div>
+            </div>
+            
+            <h3 id="vatTitle" class="text-lg font-semibold text-slate-800 mb-3 mt-8">MOMS (VAT at 25%):</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-center">
+                <div class="bg-amber-50 p-4 rounded-lg">
+                    <p class="vat-label text-sm text-amber-700">MOMS Amount (Monthly)</p>
+                    <p id="monthlyMoms" class="text-2xl font-bold text-amber-800">0</p>
+                </div>
+                <div class="bg-amber-100 p-4 rounded-lg">
+                    <p class="vat-incl-label text-sm text-amber-700">Total Invoiced incl. MOMS (Monthly)</p>
+                    <p id="monthlyInvoicedWithMoms" class="text-2xl font-bold text-amber-900">0</p>
+                </div>
+                 <div class="bg-amber-50 p-4 rounded-lg">
+                    <p class="vat-label-yearly text-sm text-amber-700">MOMS Amount (Yearly)</p>
+                    <p id="yearlyMoms" class="text-2xl font-bold text-amber-800">0</p>
+                </div>
+                <div class="bg-amber-100 p-4 rounded-lg">
+                    <p class="vat-incl-label-yearly text-sm text-amber-700">Total Invoiced incl. MOMS (Yearly)</p>
+                    <p id="yearlyInvoicedWithMoms" class="text-2xl font-bold text-amber-900">0</p>
+                </div>
+            </div>
+
+            <div class="mt-8">
+                 <h3 class="text-lg font-semibold text-center text-slate-800 mb-2">Monthly Financial Composition (<span class="vat-label">Excl. MOMS</span> & Transportation)</h3>
+                <div class="comparison-chart-container">
+                    <canvas id="comparisonChart"></canvas>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="mt-10 bg-white p-6 rounded-xl shadow-md border border-slate-200">
+        <h2 class="text-2xl font-bold text-slate-900 mb-4">Important Considerations</h2>
+         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="flex items-start space-x-3"><span class="text-2xl mt-1">📄</span><div><h3 class="font-semibold text-slate-800">Billable Hours</h3><p class="text-slate-600 text-sm">Income depends on actual billable hours. Plan for variability.</p></div></div>
+            <div class="flex items-start space-x-3"><span class="text-2xl mt-1">💰</span><div><h3 class="font-semibold text-slate-800">Personal Tax</h3><p class="text-slate-600 text-sm">"Gross Salary" is pre-tax. Rates vary.</p></div></div>
+            <div class="flex items-start space-x-3"><span class="text-2xl mt-1">✈️</span><div><h3 class="font-semibold text-slate-800">Travel Compensation</h3><p class="text-slate-600 text-sm">Separate from hourly rate and typically a reimbursement.</p></div></div>
+            <div class="flex items-start space-x-3"><span class="text-2xl mt-1">🏥</span><div><h3 class="font-semibold text-slate-800">Sick Leave & Time Off</h3><p class="text-slate-600 text-sm">Self-employed cover initial sick days. Profit/Vacation pay build buffer.</p></div></div>
+            <div class="flex items-start space-x-3"><span class="text-2xl mt-1">📈</span><div><h3 class="font-semibold text-slate-800">Variable Costs</h3><p class="text-slate-600 text-sm">"Business Overheads" is an estimate. Actual costs for insurance, accounting, etc., may vary.</p></div></div>
+            <div class="flex items-start space-x-3"><span class="text-2xl mt-1">📋</span><div><h3 class="font-semibold text-slate-800">Admin Time</h3><p class="text-slate-600 text-sm">Hourly rate covers non-billable admin, marketing etc.</p></div></div>
+        </div>
+    </footer>
+</div>
+{% endblock %}
